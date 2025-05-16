@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ################################################################################
-# Supabase Multi-Manager
+# Supascale CLI
 # Original Development: Lambda Softworks - https://www.lambdasoftworks.com
 #
 # MIT License
@@ -63,7 +63,7 @@
 #    - Creates the central JSON configuration file if it doesn't exist.
 ################################################################################
 
-# Supabase Multi-Manager - Script Content Starts Below
+# Supascale CLI - Script Content Starts Below
 
 # Configuration
 DB_FILE="$HOME/.supabase_multi_manager.json"
@@ -99,7 +99,7 @@ list_projects() {
     echo "No projects configured yet."
     return
   fi
-  
+
   echo "Configured Supabase Projects:"
   echo "============================="
   jq -r '.projects | to_entries[] | "Project ID: \(.key)\n  API Port: \(.value.ports.api)\n  DB Port: \(.value.ports.db)\n  Studio Port: \(.value.ports.studio)\n  Directory: \(.value.directory)\n"' "$DB_FILE"
@@ -270,7 +270,7 @@ add_project() {
   echo ""
   echo "Configuration complete! Once JWTs are updated in the .env file,"
   echo "start your instance with:"
-  echo "  supabase-multi start $project_id"
+  echo "  supascale-cli start $project_id"
 
   # Update Kong ports in .env
   echo "Updating Kong ports in .env file..."
@@ -284,7 +284,7 @@ add_project() {
 # Function to update configuration files for a project
 update_project_configurations() {
   local project_id="$1"
-  
+
   # Use --arg to safely pass the project_id variable to jq
   local project_info=$(jq -r --arg pid "$project_id" '.projects[$pid]' "$DB_FILE")
 
@@ -391,28 +391,28 @@ update_project_configurations() {
 # Function to start a project
 start_project() {
   local project_id="$1"
-  
+
   if [ -z "$project_id" ]; then
     echo "Error: Project ID required."
-    echo "Usage: supabase-multi start <project_id>"
+    echo "Usage: supascale-cli start <project_id>"
     return 1
   fi
-  
+
   local project_info=$(jq -r --arg pid "$project_id" '.projects[$pid]' "$DB_FILE")
-  
+
   if [ "$project_info" = "null" ]; then
     echo "Error: Project '$project_id' not found."
     echo "Available projects:"
     list_projects
     return 1
   fi
-  
+
   local directory=$(echo "$project_info" | jq -r '.directory')
-  
+
   echo "Starting Supabase for project '$project_id'..."
   echo "Changing to directory: $directory/supabase/docker"
   cd "$directory/supabase/docker" || { echo "Failed to change directory"; return 1; }
-  
+
   # Copy the .env.example to .env if it doesn't exist
   if [ ! -f ".env" ]; then
     echo "Warning: .env file not found. Copying .env.example. Secrets may need manual population."
@@ -423,10 +423,10 @@ start_project() {
         return 1
     fi
   fi
-  
+
   echo "Running docker compose up..."
   sudo docker compose -p "$project_id" up -d
-  
+
   # Extract ports
   local studio_port=$(echo "$project_info" | jq -r '.ports.studio')
   local api_port=$(echo "$project_info" | jq -r '.ports.api')
@@ -447,59 +447,59 @@ start_project() {
 # Function to stop a project
 stop_project() {
   local project_id="$1"
-  
+
   if [ -z "$project_id" ]; then
     echo "Error: Project ID required."
-    echo "Usage: supabase-multi stop <project_id>"
+    echo "Usage: supascale-cli stop <project_id>"
     return 1
   fi
-  
+
   local project_info=$(jq -r ".projects.\"$project_id\"" "$DB_FILE")
-  
+
   if [ "$project_info" = "null" ]; then
     echo "Error: Project '$project_id' not found."
     echo "Available projects:"
     list_projects
     return 1
   fi
-  
+
   local directory=$(echo "$project_info" | jq -r '.directory')
-  
+
   echo "Stopping Supabase for project '$project_id'..."
   echo "Changing to directory: $directory/supabase/docker"
   cd "$directory/supabase/docker" || { echo "Failed to change directory, maybe already stopped or directory removed?"; return 1; }
-  
+
   echo "Running docker compose down..."
   sudo docker compose -p "$project_id" down -v --remove-orphans
-  
+
   echo "Supabase stopped for project '$project_id'"
 }
 
 # Function to remove a project from the database
 remove_project() {
   local project_id="$1"
-  
+
   if [ -z "$project_id" ]; then
     echo "Error: Project ID required."
-    echo "Usage: supabase-multi remove <project_id>"
+    echo "Usage: supascale-cli remove <project_id>"
     return 1
   fi
-  
+
   local project_info=$(jq -r ".projects.\"$project_id\"" "$DB_FILE")
-  
+
   if [ "$project_info" = "null" ]; then
     echo "Error: Project '$project_id' not found."
     echo "Available projects:"
     list_projects
     return 1
   fi
-  
+
   # First, stop the project if it's running
   stop_project "$project_id"
-  
+
   # Remove the project from the database
   jq --arg project_id "$project_id" 'del(.projects[$project_id])' "$DB_FILE" > "$DB_FILE.tmp" && mv "$DB_FILE.tmp" "$DB_FILE"
-  
+
   echo "Project '$project_id' removed from the database."
   echo "Note: This does not delete any project files or Docker containers."
   echo "To completely remove Docker containers, you may need to run 'docker container prune'."
@@ -507,10 +507,10 @@ remove_project() {
 
 # Function to show help
 show_help() {
-  echo "Supabase Multi-Manager - Manage multiple local Supabase instances"
+  echo "Supascale CLI - Manage multiple local Supabase instances"
   echo ""
   echo "Usage:"
-  echo "  supabase-multi [command] [options]"
+  echo "  supascale-cli [command] [options]"
   echo ""
   echo "Commands:"
   echo "  list                    List all configured projects"
@@ -521,10 +521,10 @@ show_help() {
   echo "  help                    Show this help message"
   echo ""
   echo "Examples:"
-  echo "  supabase-multi add                    # Add a new project"
-  echo "  supabase-multi list                   # List all projects"
-  echo "  supabase-multi start my-project       # Start the 'my-project' instance"
-  echo "  supabase-multi stop my-project        # Stop the 'my-project' instance"
+  echo "  supascale-cli add                    # Add a new project"
+  echo "  supascale-cli list                   # List all projects"
+  echo "  supascale-cli start my-project       # Start the 'my-project' instance"
+  echo "  supascale-cli stop my-project        # Stop the 'my-project' instance"
   echo ""
   echo "Note: This script requires the Supabase CLI to be installed and in your PATH."
 }
