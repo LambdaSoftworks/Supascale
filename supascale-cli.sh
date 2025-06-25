@@ -68,7 +68,7 @@
 # Configuration
 DB_FILE="$HOME/.supabase_multi_manager.json"
 BASE_PORT=54321  # Default starting port for Supabase services
-PORT_INCREMENT=10000  # How much to increment for a new project's port range
+PORT_INCREMENT=1000  # How much to increment for a new project's port range
 
 # Function to check if jq is installed
 check_dependencies() {
