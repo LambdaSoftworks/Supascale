@@ -113,7 +113,7 @@ The script uses two main configuration files:
          }
        }
      },
-     "last_port_assigned": 64321
+     "last_port_assigned": 54321
    }
    ```
 
