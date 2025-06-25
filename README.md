@@ -1,4 +1,4 @@
-# Supabase Multi-Manager
+# Supascale CLI
 
 A powerful bash script for managing multiple self-hosted Supabase instances on a single machine. This tool automates the setup, configuration, and management of separate Supabase environments, each with its own set of ports and configurations.
 
