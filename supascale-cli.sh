@@ -111,6 +111,29 @@ generate_password() {
   tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 40
 }
 
+# Function to generate JWT token using the JWT_SECRET
+generate_jwt_token() {
+  local jwt_secret="$1"
+  local role="$2"
+  local iat=$(date +%s)
+  local exp=$((iat + 315360000))  # 10 years from now
+  
+  # Create the header (base64url encoded)
+  local header='{"alg":"HS256","typ":"JWT"}'
+  local header_b64=$(echo -n "$header" | base64 | tr -d '=' | tr '/+' '_-' | tr -d '\n')
+  
+  # Create the payload (base64url encoded)
+  local payload="{\"aud\":\"authenticated\",\"exp\":$exp,\"iat\":$iat,\"iss\":\"supabase\",\"ref\":\"localhost\",\"role\":\"$role\",\"sub\":\"1234567890\"}"
+  local payload_b64=$(echo -n "$payload" | base64 | tr -d '=' | tr '/+' '_-' | tr -d '\n')
+  
+  # Create the signature
+  local signature_input="$header_b64.$payload_b64"
+  local signature=$(echo -n "$signature_input" | openssl dgst -sha256 -hmac "$jwt_secret" -binary | base64 | tr -d '=' | tr '/+' '_-' | tr -d '\n')
+  
+  # Return the complete JWT
+  echo "$header_b64.$payload_b64.$signature"
+}
+
 # Function to add a new project
 add_project() {
   local project_id directory postgres_password jwt_secret anon_key_placeholder service_key_placeholder docker_env_file
@@ -168,24 +191,24 @@ add_project() {
   local dashboard_password=$(generate_password)
   local vault_enc_key=$(generate_password)
 
-  # Define placeholders for JWT keys (MANUAL REPLACEMENT REQUIRED)
-  # Setting to empty as requested
-  # anon_key_placeholder="PLEASE_REPLACE_WITH_GENERATED_ANON_KEY"
-  # service_key_placeholder="PLEASE_REPLACE_WITH_GENERATED_SERVICE_KEY"
+  # Generate JWT keys automatically using the JWT secret
+  echo "Generating JWT keys..."
+  local anon_key=$(generate_jwt_token "$jwt_secret" "anon")
+  local service_role_key=$(generate_jwt_token "$jwt_secret" "service_role")
 
-  # Update .env file with secrets and empty JWT keys
+  # Update .env file with secrets and generated JWT keys
   echo "Updating .env file..."
   # Use a different delimiter for sed because passwords might contain slashes
   # Also ensure we match the start of the line and the equals sign
   sed -i.tmp "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$postgres_password|" "$docker_env_file"
   sed -i.tmp "s|^JWT_SECRET=.*|JWT_SECRET=$jwt_secret|" "$docker_env_file"
-  sed -i.tmp "s|^ANON_KEY=.*|ANON_KEY=|" "$docker_env_file" # Set to empty
-  sed -i.tmp "s|^SERVICE_ROLE_KEY=.*|SERVICE_ROLE_KEY=|" "$docker_env_file" # Set to empty
+  sed -i.tmp "s|^ANON_KEY=.*|ANON_KEY=$anon_key|" "$docker_env_file"
+  sed -i.tmp "s|^SERVICE_ROLE_KEY=.*|SERVICE_ROLE_KEY=$service_role_key|" "$docker_env_file"
   sed -i.tmp "s|^DASHBOARD_PASSWORD=.*|DASHBOARD_PASSWORD=$dashboard_password|" "$docker_env_file"
   sed -i.tmp "s|^VAULT_ENC_KEY=.*|VAULT_ENC_KEY=$vault_enc_key|" "$docker_env_file"
   rm -f "$docker_env_file.tmp" # Clean up sed backup
 
-  echo ".env file updated with generated passwords and empty JWT keys."
+  echo ".env file updated with generated passwords and JWT keys."
 
   # --- Assign Ports and Update DB ---
   local last_port=$(jq '.last_port_assigned' "$DB_FILE")
@@ -241,35 +264,24 @@ add_project() {
 
   echo ""
   echo "----------------------------------------------------------------------"
-  echo "IMPORTANT ACTION REQUIRED:"
+  echo "SUCCESS: PROJECT CREATED AND CONFIGURED"
   echo "----------------------------------------------------------------------"
-  echo "Project '$project_id' created and configured."
+  echo "Project '$project_id' has been successfully created and configured."
   echo "Generated secrets have been saved to:"
   echo "  $docker_env_file"
-  echo "  DASHBOARD_PASSWORD: [GENERATED]"
-  echo "  POSTGRES_PASSWORD: [GENERATED]"
-  echo "  VAULT_ENC_KEY:      [GENERATED]"
   echo ""
-  echo "The generated JWT_SECRET (needed for the next step) is:"
-  echo "  $jwt_secret"
+  echo "Generated credentials:"
+  echo "  DASHBOARD_PASSWORD: $dashboard_password"
+  echo "  POSTGRES_PASSWORD:  $postgres_password"
+  echo "  VAULT_ENC_KEY:      $vault_enc_key"
+  echo "  JWT_SECRET:         $jwt_secret"
   echo ""
-  echo "You MUST now manually generate the ANON_KEY and SERVICE_ROLE_KEY."
-  echo "Use the JWT_SECRET printed above (^)."
-  echo ""
-  echo "You can use a secure tool like the one potentially found via the"
-  echo "Supabase self-hosting documentation:"
-  echo "  https://supabase.com/docs/guides/self-hosting/docker"
-  echo ""
-  echo "Once you have generated the ANON_KEY and SERVICE_ROLE_KEY JWTs,"
-  echo "edit the file:"
-  echo "  $docker_env_file"
-  echo "And add the generated JWTs after the '=' sign for:"
-  echo "  ANON_KEY="
-  echo "  SERVICE_ROLE_KEY="
+  echo "Generated JWT keys:"
+  echo "  ANON_KEY:           $anon_key"
+  echo "  SERVICE_ROLE_KEY:   $service_role_key"
   echo "----------------------------------------------------------------------"
   echo ""
-  echo "Configuration complete! Once JWTs are updated in the .env file,"
-  echo "start your instance with:"
+  echo "Configuration complete! Start your instance with:"
   echo "  supascale-cli start $project_id"
 
   # Update Kong ports in .env
@@ -278,7 +290,7 @@ add_project() {
   sed -i.tmp "s|^KONG_HTTPS_PORT=.*|KONG_HTTPS_PORT=$kong_https_port|" "$docker_env_file"
   rm -f "$docker_env_file.tmp" # Clean up sed backup
 
-  echo ".env file updated with generated passwords, JWT placeholders, and Kong ports."
+  echo ".env file updated with generated passwords, JWT keys, and Kong ports."
 }
 
 # Function to update configuration files for a project
