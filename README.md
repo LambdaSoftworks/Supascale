@@ -1,6 +1,6 @@
 # Supascale CLI
 
-A powerful bash script for managing multiple self-hosted Supabase instances on a single machine. This tool automates the setup, configuration, and management of separate Supabase environments, each with its own set of ports and configurations.
+A bash script for managing multiple self-hosted Supabase instances on a single machine. This tool automates the setup, configuration, and management of separate Supabase environments, each with its own set of ports and configurations.
 
 ## Features
 
@@ -123,7 +123,6 @@ The script uses two main configuration files:
      - `JWT_SECRET`
      - `DASHBOARD_PASSWORD`
      - `VAULT_ENC_KEY`
-   - Manual configuration required:
      - `ANON_KEY`
      - `SERVICE_ROLE_KEY`
 
@@ -161,7 +160,7 @@ When a project is started, the script automatically:
 ## Troubleshooting
 
 1. **Port Conflicts**
-   - Each project uses a different port range (10000 ports apart)
+   - Each project uses a different port range (1000 ports apart)
    - If you encounter port conflicts, check running Docker containers
    - Use `sudo docker ps` to verify running instances
 
