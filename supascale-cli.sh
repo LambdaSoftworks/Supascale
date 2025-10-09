@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ################################################################################
-# Supascale CLI
+# Supascale
 # Original Development: Lambda Softworks - https://www.lambdasoftworks.com
 #
 # MIT License
@@ -63,13 +63,13 @@
 #    - Creates the central JSON configuration file if it doesn't exist.
 ################################################################################
 
-# Supascale CLI - Script Content Starts Below
+# Supascale - Script Content Starts Below
 
 # Configuration
-VERSION="1.2.8"
-GITHUB_RAW_URL="https://raw.githubusercontent.com/LambdaSoftworks/supascale-cli/main/supascale-cli.sh"
-UPDATE_CHECK_FILE="$HOME/.supascale-cli_last_check"
-DB_FILE="$HOME/.supascale-cli_database.json"
+VERSION="1.2.9"
+GITHUB_RAW_URL="https://raw.githubusercontent.com/LambdaSoftworks/supascale/main/supascale.sh"
+UPDATE_CHECK_FILE="$HOME/.supascale_last_check"
+DB_FILE="$HOME/.supascale_database.json"
 BASE_PORT=54321  # Default starting port for Supabase services
 PORT_INCREMENT=1000  # How much to increment for a new project's port range
 
@@ -124,8 +124,8 @@ check_for_updates() {
     echo "   Current version: $VERSION"
     echo "   Latest version:  $latest_version"
     echo ""
-    echo "   Run './supascale-cli.sh update' to update to the latest version."
-    echo "   Or visit: https://github.com/LambdaSoftworks/supascale-cli"
+    echo "   Run './supascale.sh update' to update to the latest version."
+    echo "   Or visit: https://github.com/LambdaSoftworks/supascale"
     echo ""
   fi
 }
@@ -352,7 +352,7 @@ add_project() {
   echo "----------------------------------------------------------------------"
   echo ""
   echo "Configuration complete! Start your instance with:"
-  echo "  ./supascale-cli.sh start $project_id"
+  echo "  ./supascale.sh start $project_id"
 
   # Update Kong and Postgres ports in .env
   echo "Updating Kong and Postgres ports in .env file..."
@@ -477,7 +477,7 @@ start_project() {
 
   if [ -z "$project_id" ]; then
     echo "Error: Project ID required."
-    echo "Usage: ./supascale-cli.sh start <project_id>"
+    echo "Usage: ./supascale.sh start <project_id>"
     return 1
   fi
 
@@ -532,7 +532,7 @@ stop_project() {
 
   if [ -z "$project_id" ]; then
     echo "Error: Project ID required."
-    echo "Usage: ./supascale-cli.sh stop <project_id>"
+    echo "Usage: ./supascale.sh stop <project_id>"
     return 1
   fi
 
@@ -563,7 +563,7 @@ remove_project() {
 
   if [ -z "$project_id" ]; then
     echo "Error: Project ID required."
-    echo "Usage: ./supascale-cli.sh remove <project_id>"
+    echo "Usage: ./supascale.sh remove <project_id>"
     return 1
   fi
 
@@ -593,7 +593,7 @@ update_script() {
   
   # Try to fetch the latest version
   local latest_version=""
-  local temp_script="/tmp/supascale-cli-latest.sh"
+  local temp_script="/tmp/supascale-latest.sh"
   
   if command -v curl &> /dev/null; then
     curl -s --max-time 10 "$GITHUB_RAW_URL" -o "$temp_script"
@@ -661,7 +661,7 @@ show_help() {
   echo "Supascale CLI v$VERSION - Manage multiple local Supabase instances"
   echo ""
   echo "Usage:"
-  echo "  ./supascale-cli.sh [command] [options]"
+  echo "  ./supascale.sh [command] [options]"
   echo ""
   echo "Commands:"
   echo "  list                    List all configured projects"
@@ -674,10 +674,10 @@ show_help() {
   echo "  help                    Show this help message"
   echo ""
   echo "Examples:"
-  echo "  ./supascale-cli.sh add                    # Add a new project"
-  echo "  ./supascale-cli.sh list                   # List all projects"
-  echo "  ./supascale-cli.sh start my-project       # Start the 'my-project' instance"
-  echo "  ./supascale-cli.sh stop my-project        # Stop the 'my-project' instance"
+  echo "  ./supascale.sh add                    # Add a new project"
+  echo "  ./supascale.sh list                   # List all projects"
+  echo "  ./supascale.sh start my-project       # Start the 'my-project' instance"
+  echo "  ./supascale.sh stop my-project        # Stop the 'my-project' instance"
   echo ""
   echo "Note: This script requires the Supabase CLI to be installed and in your PATH."
 }
