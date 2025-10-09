@@ -184,10 +184,6 @@ When a project is started, the script automatically:
    - To clean up Docker containers: `docker container prune`
    - To completely remove a project, manually delete the project directory
 
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
 ## License
 
 MIT License - Copyright (c) 2025 Lambda Softworks
