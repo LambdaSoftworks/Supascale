@@ -1,4 +1,4 @@
-# Supascale CLI
+# Supascale
 
 A bash script for managing multiple self-hosted Supabase instances on a single machine. This tool automates the setup, configuration, and management of separate Supabase environments, each with its own set of ports and configurations.
 
@@ -29,7 +29,7 @@ git clone [repository-url]
 
 2. Make the script executable:
 ```bash
-chmod +x supascale-cli.sh
+chmod +x supascale.sh
 ```
 
 ## Usage
@@ -37,7 +37,7 @@ chmod +x supascale-cli.sh
 ### Available Commands
 
 ```bash
-./supascale-cli [command] [options]
+./supascale [command] [options]
 ```
 
 - `list`: Display all configured projects
@@ -51,27 +51,27 @@ chmod +x supascale-cli.sh
 
 1. **Create a new project**:
 ```bash
-./supascale-cli add
+./supascale add
 ```
 
 2. **List all projects**:
 ```bash
-./supascale-cli list
+./supascale list
 ```
 
 3. **Start a project**:
 ```bash
-./supascale-cli start my-project
+./supascale start my-project
 ```
 
 4. **Stop a project**:
 ```bash
-./supascale-cli stop my-project
+./supascale stop my-project
 ```
 
 5. **Update the script**:
 ```bash
-./supascale-cli update
+./supascale update
 ```
 
 ## Project Structure
@@ -93,7 +93,7 @@ $HOME/<project_id>/
 
 The script uses two main configuration files:
 
-1. **Central Configuration** (`$HOME/.supascale-cli_database.json`):
+1. **Central Configuration** (`$HOME/.supascale_database.json`):
    ```json
    {
      "projects": {
@@ -179,7 +179,7 @@ When a project is started, the script automatically:
 ## Cleanup
 
 1. **Removing a Project**
-   - Use `./supascale-cli remove <project_id>` to remove project from configuration
+   - Use `./supascale remove <project_id>` to remove project from configuration
    - Note: This doesn't delete project files or Docker containers
    - To clean up Docker containers: `docker container prune`
    - To completely remove a project, manually delete the project directory
