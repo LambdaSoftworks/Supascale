@@ -66,7 +66,7 @@
 # Supascale CLI - Script Content Starts Below
 
 # Configuration
-VERSION="1.2.7"
+VERSION="1.2.8"
 DB_FILE="$HOME/.supascale-cli_database.json"
 BASE_PORT=54321  # Default starting port for Supabase services
 PORT_INCREMENT=1000  # How much to increment for a new project's port range
