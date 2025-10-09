@@ -66,7 +66,8 @@
 # Supascale CLI - Script Content Starts Below
 
 # Configuration
-DB_FILE="$HOME/.supabase_multi_manager.json"
+VERSION="1.2.7"
+DB_FILE="$HOME/.supascale-cli_database.json"
 BASE_PORT=54321  # Default starting port for Supabase services
 PORT_INCREMENT=1000  # How much to increment for a new project's port range
 
@@ -79,6 +80,16 @@ check_dependencies() {
     echo "  - macOS: brew install jq"
     echo "  - Fedora/CentOS: sudo dnf install jq"
     exit 1
+  fi
+}
+
+# Function to migrate old database file if it exists
+migrate_old_db() {
+  local old_db_file="$HOME/.supabase_multi_manager.json"
+  if [ -f "$old_db_file" ] && [ ! -f "$DB_FILE" ]; then
+    echo "Found old database file, migrating to new location..."
+    mv "$old_db_file" "$DB_FILE"
+    echo "Migrated database from $old_db_file to $DB_FILE"
   fi
 }
 
@@ -139,7 +150,17 @@ add_project() {
   local project_id directory postgres_password jwt_secret anon_key_placeholder service_key_placeholder docker_env_file
 
   # Prompt for project ID
-  read -p "Enter project ID (must be unique): " project_id
+  read -p "Enter project ID (lowercase alphanumeric, hyphens, underscores only): " project_id
+
+  # Validate project ID format for Docker Compose compatibility
+  if [[ ! "$project_id" =~ ^[a-z0-9][a-z0-9_-]*$ ]]; then
+    echo "Error: Project ID '$project_id' is invalid."
+    echo "Project ID must:"
+    echo "  - Start with a letter or number"
+    echo "  - Contain only lowercase letters, numbers, hyphens, and underscores"
+    echo "  - No dots, spaces, or special characters allowed"
+    return 1
+  fi
 
   # Check if project ID already exists
   # Updated check to use --arg and check for existence more robustly
@@ -204,6 +225,7 @@ add_project() {
   sed -i.tmp "s|^JWT_SECRET=.*|JWT_SECRET=$jwt_secret|" "$docker_env_file"
   sed -i.tmp "s|^ANON_KEY=.*|ANON_KEY=$anon_key|" "$docker_env_file"
   sed -i.tmp "s|^SERVICE_ROLE_KEY=.*|SERVICE_ROLE_KEY=$service_role_key|" "$docker_env_file"
+  sed -i.tmp "s|^DASHBOARD_USERNAME=.*|DASHBOARD_USERNAME=supabase|" "$docker_env_file"
   sed -i.tmp "s|^DASHBOARD_PASSWORD=.*|DASHBOARD_PASSWORD=$dashboard_password|" "$docker_env_file"
   sed -i.tmp "s|^VAULT_ENC_KEY=.*|VAULT_ENC_KEY=$vault_enc_key|" "$docker_env_file"
   rm -f "$docker_env_file.tmp" # Clean up sed backup
@@ -271,6 +293,7 @@ add_project() {
   echo "  $docker_env_file"
   echo ""
   echo "Generated credentials:"
+  echo "  DASHBOARD_USERNAME: supabase"
   echo "  DASHBOARD_PASSWORD: $dashboard_password"
   echo "  POSTGRES_PASSWORD:  $postgres_password"
   echo "  VAULT_ENC_KEY:      $vault_enc_key"
@@ -282,15 +305,16 @@ add_project() {
   echo "----------------------------------------------------------------------"
   echo ""
   echo "Configuration complete! Start your instance with:"
-  echo "  supascale-cli start $project_id"
+  echo "  ./supascale-cli.sh start $project_id"
 
-  # Update Kong ports in .env
-  echo "Updating Kong ports in .env file..."
+  # Update Kong and Postgres ports in .env
+  echo "Updating Kong and Postgres ports in .env file..."
   sed -i.tmp "s|^KONG_HTTP_PORT=.*|KONG_HTTP_PORT=$api_port|" "$docker_env_file"
   sed -i.tmp "s|^KONG_HTTPS_PORT=.*|KONG_HTTPS_PORT=$kong_https_port|" "$docker_env_file"
+  sed -i.tmp "s|^POSTGRES_PORT=.*|POSTGRES_PORT=$db_port|" "$docker_env_file"
   rm -f "$docker_env_file.tmp" # Clean up sed backup
 
-  echo ".env file updated with generated passwords, JWT keys, and Kong ports."
+  echo ".env file updated with generated passwords, JWT keys, Kong ports, and Postgres port."
 }
 
 # Function to update configuration files for a project
@@ -406,7 +430,7 @@ start_project() {
 
   if [ -z "$project_id" ]; then
     echo "Error: Project ID required."
-    echo "Usage: supascale-cli start <project_id>"
+    echo "Usage: ./supascale-cli.sh start <project_id>"
     return 1
   fi
 
@@ -440,7 +464,6 @@ start_project() {
   sudo docker compose -p "$project_id" up -d
 
   # Extract ports
-  local studio_port=$(echo "$project_info" | jq -r '.ports.studio')
   local api_port=$(echo "$project_info" | jq -r '.ports.api')
 
   # Attempt to get host IP
@@ -452,8 +475,8 @@ start_project() {
   fi
 
   echo "Supabase should now be running for project '$project_id':"
-  echo "  Studio URL: http://$host_ip:$studio_port"
-  echo "  API URL: http://$host_ip:$api_port"
+  echo "  Studio URL: http://$host_ip:$api_port"
+  echo "  API URL: http://$host_ip:$api_port/rest/v1/"
 }
 
 # Function to stop a project
@@ -462,7 +485,7 @@ stop_project() {
 
   if [ -z "$project_id" ]; then
     echo "Error: Project ID required."
-    echo "Usage: supascale-cli stop <project_id>"
+    echo "Usage: ./supascale-cli.sh stop <project_id>"
     return 1
   fi
 
@@ -493,7 +516,7 @@ remove_project() {
 
   if [ -z "$project_id" ]; then
     echo "Error: Project ID required."
-    echo "Usage: supascale-cli remove <project_id>"
+    echo "Usage: ./supascale-cli.sh remove <project_id>"
     return 1
   fi
 
@@ -519,10 +542,10 @@ remove_project() {
 
 # Function to show help
 show_help() {
-  echo "Supascale CLI - Manage multiple local Supabase instances"
+  echo "Supascale CLI v$VERSION - Manage multiple local Supabase instances"
   echo ""
   echo "Usage:"
-  echo "  supascale-cli [command] [options]"
+  echo "  ./supascale-cli.sh [command] [options]"
   echo ""
   echo "Commands:"
   echo "  list                    List all configured projects"
@@ -533,16 +556,17 @@ show_help() {
   echo "  help                    Show this help message"
   echo ""
   echo "Examples:"
-  echo "  supascale-cli add                    # Add a new project"
-  echo "  supascale-cli list                   # List all projects"
-  echo "  supascale-cli start my-project       # Start the 'my-project' instance"
-  echo "  supascale-cli stop my-project        # Stop the 'my-project' instance"
+  echo "  ./supascale-cli.sh add                    # Add a new project"
+  echo "  ./supascale-cli.sh list                   # List all projects"
+  echo "  ./supascale-cli.sh start my-project       # Start the 'my-project' instance"
+  echo "  ./supascale-cli.sh stop my-project        # Stop the 'my-project' instance"
   echo ""
   echo "Note: This script requires the Supabase CLI to be installed and in your PATH."
 }
 
 # Main script
 check_dependencies
+migrate_old_db
 initialize_db
 
 case "$1" in
