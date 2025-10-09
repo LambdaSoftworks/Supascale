@@ -1,0 +1,273 @@
+# Supascale CLI - Planned Features
+
+This document outlines planned features and enhancements for the Supascale CLI tool.
+
+## 🔮 Upcoming Features
+
+### Auto-Update System
+**Status**: Planned  
+**Priority**: High  
+
+Automatic script update functionality with user consent.
+
+**Features:**
+- Check for new versions on script startup (with rate limiting)
+- Compare current version against latest release
+- User prompt before updating with changelog preview
+- Automatic backup of current script before update
+- Rollback functionality if update fails
+- Update command for manual version checking
+- Option to disable auto-update checks
+
+**Implementation Details:**
+- Version checking via GitHub API or dedicated endpoint
+- Download latest script version securely (HTTPS + checksum verification)
+- Preserve user configurations during updates
+- Self-replacing script mechanism with proper error handling
+- Update notification with version differences
+
+**User Experience:**
+```
+Checking for updates...
+New version 1.3.0 available (current: 1.2.7)
+
+Changelog:
+- Added SSL/Domain integration
+- Fixed container startup issues
+- Improved error handling
+
+Would you like to update now? (y/N): y
+Backing up current script to ./supascale-cli.sh.bak...
+Downloading version 1.3.0...
+Update completed successfully!
+```
+
+**Commands:**
+- `./supascale-cli.sh update` - Manual script update check
+- `./supascale-cli.sh version` - Show current version
+- `./supascale-cli.sh --no-update-check` - Skip update check on startup
+
+### Supabase Container Updates
+**Status**: Planned  
+**Priority**: High  
+
+Update Supabase Docker containers to latest available versions for existing instances.
+
+**Features:**
+- Update individual project containers to latest Supabase releases
+- Check current vs available container versions
+- Backup project data before container updates
+- Graceful container replacement with minimal downtime
+- Rollback capability if updates fail
+- Update all containers or selective updates
+- Version comparison and changelog display
+
+**Implementation Details:**
+- Pull latest container images from Supabase Docker Hub
+- Update docker-compose.yml with new image tags
+- Preserve all project configurations and data volumes
+- Smart update ordering (dependencies first)
+- Container health checks after updates
+- Automatic cleanup of old container images
+
+**User Experience:**
+```
+Checking for Supabase container updates for project 'my-app'...
+Available updates:
+  studio: 2025.10.01 → 2025.11.15 (security fixes, new dashboard features)
+  postgres: 15.8.1.085 → 15.9.1.090 (performance improvements)
+  kong: 2.8.1 → 2.8.2 (bug fixes)
+
+Would you like to update these containers? (y/N): y
+Backing up project data...
+Stopping containers gracefully...
+Pulling new container images...
+Starting updated containers...
+Update completed successfully!
+
+Your project is now running the latest Supabase versions.
+```
+
+**Commands:**
+- `./supascale-cli.sh update-containers <project_id>` - Update specific project containers
+- `./supascale-cli.sh update-containers --all` - Update all project containers
+- `./supascale-cli.sh check-updates <project_id>` - Check available updates without applying
+- `./supascale-cli.sh container-versions <project_id>` - Show current container versions
+
+### SSL/Domain Integration
+**Status**: Planned  
+**Priority**: High  
+
+Add support for mapping Supabase instances to custom domains with automatic SSL certificate provisioning.
+
+**Features:**
+- Prompt user during project setup to optionally configure a custom domain
+- Automatic Apache virtual host configuration
+- Let's Encrypt SSL certificate generation and management via Certbot
+- Automatic certificate renewal setup
+- Port 443 (HTTPS) mapping with HTTP to HTTPS redirect
+- DNS validation checks before certificate generation
+
+**Implementation Details:**
+- Integration with Apache web server as reverse proxy
+- Certbot integration for SSL certificate management
+- Automatic firewall configuration for ports 80/443
+- Support for both Studio and API endpoints on custom domains
+- Graceful fallback to IP:port access if domain setup fails
+
+**User Experience:**
+```
+Would you like to configure a custom domain for this instance? (y/N): y
+Enter your domain name (e.g., myapp.example.com): myapp.example.com
+Checking DNS resolution for myapp.example.com...
+DNS check passed. Configuring Apache virtual host...
+Generating SSL certificate via Let's Encrypt...
+SSL certificate generated successfully!
+Your Supabase instance is now available at:
+  Studio: https://myapp.example.com
+  API: https://myapp.example.com/rest/v1/
+```
+
+### Comprehensive Backup System
+**Status**: Planned  
+**Priority**: High  
+
+Complete backup solution for all Supabase components with local and cloud storage options.
+
+**Backup Components:**
+- **PostgreSQL Database** - Full database dumps with schema and data
+- **Storage Buckets** - All files and bucket configurations
+- **Edge Functions** - Function code and configurations
+- **Auth Settings** - User data, roles, and authentication configurations
+- **Realtime Configurations** - Realtime subscriptions and settings
+- **Project Configuration** - Environment variables, secrets, and project settings
+- **Full Project Backup** - Complete container volumes and configurations
+
+**Storage Destinations:**
+- **Local Storage** - Compressed archives with optional encryption
+- **AWS S3** - Direct upload to S3 buckets with IAM integration
+- **Azure Blob Storage** - Upload to Azure storage accounts
+- **Google Cloud Storage** - GCS bucket integration
+- **Custom S3-Compatible** - MinIO, DigitalOcean Spaces, etc.
+
+**Features:**
+- Single command backup execution (cron-friendly)
+- Incremental and full backup options
+- Automated retention policies (keep last N backups)
+- Backup compression and encryption (AES-256)
+- Backup verification and integrity checks
+- Easy restore functionality with rollback capability
+- Backup scheduling with cron integration helper
+- Progress indicators for large backups
+- Backup size estimation before execution
+
+**Implementation Details:**
+- PostgreSQL: Use pg_dump for database backups
+- Storage: Sync bucket contents with metadata preservation
+- Functions: Export function definitions and configurations
+- Auth: Export user data and configuration (excluding sensitive data)
+- Cloud integration via official CLI tools (aws-cli, az-cli, gsutil)
+- Atomic backup operations with rollback on failure
+- Backup manifests with checksums and metadata
+
+**User Experience:**
+```
+# Full project backup to local storage
+./supascale-cli.sh backup my-app --type full --destination local
+
+# Database only backup to AWS S3
+./supascale-cli.sh backup my-app --type database --destination s3://my-bucket/backups
+
+# Storage buckets backup to Azure
+./supascale-cli.sh backup my-app --type storage --destination azure://mystorageaccount/backups
+
+# Scheduled full backup (cron-friendly, silent mode)
+./supascale-cli.sh backup my-app --type full --destination s3://my-bucket --silent --retention 7
+
+# Backup with encryption
+./supascale-cli.sh backup my-app --type full --destination local --encrypt --password-file /secure/backup.key
+
+# Restore from backup
+./supascale-cli.sh restore my-app --from local://backups/my-app-2025-01-09-full.tar.gz --confirm
+```
+
+**Commands:**
+- `./supascale-cli.sh backup <project_id> [options]` - Create backup
+- `./supascale-cli.sh restore <project_id> --from <backup_path>` - Restore from backup
+- `./supascale-cli.sh list-backups <project_id>` - List available backups
+- `./supascale-cli.sh verify-backup <backup_path>` - Verify backup integrity
+- `./supascale-cli.sh setup-backup-schedule <project_id>` - Interactive cron setup
+- `./supascale-cli.sh backup-info <backup_path>` - Show backup contents and metadata
+
+**Backup Types:**
+- `--type full` - Complete project backup (default)
+- `--type database` - PostgreSQL database only
+- `--type storage` - Storage buckets and files
+- `--type functions` - Edge functions only
+- `--type auth` - Authentication data and settings
+- `--type config` - Project configurations and environment variables
+
+**Destination Examples:**
+- `local` or `local://path/to/backups` - Local filesystem
+- `s3://bucket-name/path` - AWS S3
+- `azure://storageaccount/container/path` - Azure Blob Storage
+- `gs://bucket-name/path` - Google Cloud Storage
+- `s3://endpoint-url/bucket/path` - Custom S3-compatible storage
+
+**Cron Integration:**
+```bash
+# Daily full backup to AWS S3 at 2 AM
+0 2 * * * /home/user/supascale-cli.sh backup my-app --type full --destination s3://my-backups --silent --retention 30
+
+# Weekly database backup to local storage every Sunday at 3 AM
+0 3 * * 0 /home/user/supascale-cli.sh backup my-app --type database --destination local --silent --retention 4
+```
+
+### Multi-Environment Support
+**Status**: Planned  
+**Priority**: Medium  
+
+Support for development, staging, and production environments per project.
+
+**Features:**
+- Environment-specific configurations
+- Easy environment switching
+- Environment variable management
+- Database seeding for different environments
+
+### Monitoring & Health Checks
+**Status**: Planned  
+**Priority**: Low  
+
+Basic monitoring and health check functionality.
+
+**Features:**
+- Service health status checking
+- Basic performance monitoring
+- Log aggregation and viewing
+- Alert notifications for service failures
+
+### Migration Tools
+**Status**: Planned  
+**Priority**: Low  
+
+Tools to help migrate existing Supabase projects to Supascale CLI management.
+
+**Features:**
+- Import existing Supabase configurations
+- Database schema migration helpers
+- Configuration validation and cleanup
+
+---
+
+## 🤝 Contributing
+
+Have ideas for new features? Please open an issue or submit a pull request!
+
+## 📋 Feature Request Template
+
+When requesting new features, please include:
+- Use case description
+- Expected behavior
+- Priority level (High/Medium/Low)
+- Any implementation suggestions
