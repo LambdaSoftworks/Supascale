@@ -658,7 +658,7 @@ update_script() {
 
 # Function to show help
 show_help() {
-  echo "Supascale CLI v$VERSION - Manage multiple local Supabase instances"
+  echo "Supascale v$VERSION - Manage multiple local Supabase instances"
   echo ""
   echo "Usage:"
   echo "  ./supascale.sh [command] [options]"
@@ -708,7 +708,7 @@ case "$1" in
     update_script
     ;;
   version)
-    echo "Supascale CLI v$VERSION"
+    echo "Supascale v$VERSION"
     ;;
   help|--help|-h)
     show_help
