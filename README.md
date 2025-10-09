@@ -93,7 +93,7 @@ $HOME/<project_id>/
 
 The script uses two main configuration files:
 
-1. **Central Configuration** (`$HOME/.supabase_multi_manager.json`):
+1. **Central Configuration** (`$HOME/.supascale-cli_database.json`):
    ```json
    {
      "projects": {
@@ -128,7 +128,7 @@ The script uses two main configuration files:
 
 ## Port Allocation
 
-The script uses a base port of 54321 and increments by 10000 for each new project. For each project:
+The script uses a base port of 54321 and increments by 1000 for each new project. For each project:
 
 - Shadow Port: Base port - 1
 - API Port (Kong): Base port
