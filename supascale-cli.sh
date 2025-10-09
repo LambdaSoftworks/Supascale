@@ -67,6 +67,8 @@
 
 # Configuration
 VERSION="1.2.8"
+GITHUB_RAW_URL="https://raw.githubusercontent.com/LambdaSoftworks/supascale-cli/main/supascale-cli.sh"
+UPDATE_CHECK_FILE="$HOME/.supascale-cli_last_check"
 DB_FILE="$HOME/.supascale-cli_database.json"
 BASE_PORT=54321  # Default starting port for Supabase services
 PORT_INCREMENT=1000  # How much to increment for a new project's port range
@@ -80,6 +82,51 @@ check_dependencies() {
     echo "  - macOS: brew install jq"
     echo "  - Fedora/CentOS: sudo dnf install jq"
     exit 1
+  fi
+}
+
+# Function to check for script updates
+check_for_updates() {
+  # Skip if --no-update-check flag is present
+  if [[ "$*" == *"--no-update-check"* ]]; then
+    return 0
+  fi
+
+  # Rate limiting: only check once per day
+  if [ -f "$UPDATE_CHECK_FILE" ]; then
+    local last_check=$(cat "$UPDATE_CHECK_FILE" 2>/dev/null || echo "0")
+    local current_time=$(date +%s)
+    local time_diff=$((current_time - last_check))
+    # Skip if checked within last 24 hours (86400 seconds)
+    if [ $time_diff -lt 86400 ]; then
+      return 0
+    fi
+  fi
+
+  # Try to fetch the latest version (timeout after 5 seconds)
+  local latest_version=""
+  if command -v curl &> /dev/null; then
+    latest_version=$(curl -s --max-time 5 "$GITHUB_RAW_URL" | grep '^VERSION=' | head -1 | cut -d'"' -f2 2>/dev/null)
+  elif command -v wget &> /dev/null; then
+    latest_version=$(wget -q --timeout=5 -O- "$GITHUB_RAW_URL" | grep '^VERSION=' | head -1 | cut -d'"' -f2 2>/dev/null)
+  else
+    # No curl or wget available, skip update check
+    return 0
+  fi
+
+  # Update the last check timestamp
+  echo "$(date +%s)" > "$UPDATE_CHECK_FILE"
+
+  # Compare versions if we got a valid response
+  if [ -n "$latest_version" ] && [ "$latest_version" != "$VERSION" ]; then
+    echo ""
+    echo "Update Available!"
+    echo "   Current version: $VERSION"
+    echo "   Latest version:  $latest_version"
+    echo ""
+    echo "   Run './supascale-cli.sh update' to update to the latest version."
+    echo "   Or visit: https://github.com/LambdaSoftworks/supascale-cli"
+    echo ""
   fi
 }
 
@@ -540,6 +587,75 @@ remove_project() {
   echo "To completely remove Docker containers, you may need to run 'docker container prune'."
 }
 
+# Function to update the script
+update_script() {
+  echo "Checking for updates..."
+  
+  # Try to fetch the latest version
+  local latest_version=""
+  local temp_script="/tmp/supascale-cli-latest.sh"
+  
+  if command -v curl &> /dev/null; then
+    curl -s --max-time 10 "$GITHUB_RAW_URL" -o "$temp_script"
+  elif command -v wget &> /dev/null; then
+    wget -q --timeout=10 -O "$temp_script" "$GITHUB_RAW_URL"
+  else
+    echo "Error: curl or wget is required for updates."
+    return 1
+  fi
+  
+  if [ ! -f "$temp_script" ] || [ ! -s "$temp_script" ]; then
+    echo "Error: Failed to download the latest version."
+    rm -f "$temp_script"
+    return 1
+  fi
+  
+  # Extract version from downloaded script
+  latest_version=$(grep '^VERSION=' "$temp_script" | head -1 | cut -d'"' -f2 2>/dev/null)
+  
+  if [ -z "$latest_version" ]; then
+    echo "Error: Could not determine the latest version."
+    rm -f "$temp_script"
+    return 1
+  fi
+  
+  if [ "$latest_version" = "$VERSION" ]; then
+    echo "You are already running the latest version ($VERSION)."
+    rm -f "$temp_script"
+    return 0
+  fi
+  
+  echo "Current version: $VERSION"
+  echo "Latest version:  $latest_version"
+  echo ""
+  read -p "Would you like to update to version $latest_version? (y/N): " -r
+  
+  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "Update cancelled."
+    rm -f "$temp_script"
+    return 0
+  fi
+  
+  # Get the current script path
+  local script_path="$(readlink -f "${BASH_SOURCE[0]}")"
+  local backup_path="${script_path}.bak"
+  
+  echo "Backing up current script to $backup_path..."
+  cp "$script_path" "$backup_path"
+  
+  echo "Installing update..."
+  if mv "$temp_script" "$script_path" && chmod +x "$script_path"; then
+    echo "Update completed successfully!"
+    echo "   Updated from $VERSION to $latest_version"
+    echo "   Backup saved to: $backup_path"
+  else
+    echo "Update failed! Restoring backup..."
+    mv "$backup_path" "$script_path"
+    rm -f "$temp_script"
+    return 1
+  fi
+}
+
 # Function to show help
 show_help() {
   echo "Supascale CLI v$VERSION - Manage multiple local Supabase instances"
@@ -553,6 +669,8 @@ show_help() {
   echo "  start <project_id>      Start a specific project"
   echo "  stop <project_id>       Stop a specific project"
   echo "  remove <project_id>     Remove a project from the database"
+  echo "  update                  Update the script to the latest version"
+  echo "  version                 Show current version"
   echo "  help                    Show this help message"
   echo ""
   echo "Examples:"
@@ -566,6 +684,7 @@ show_help() {
 
 # Main script
 check_dependencies
+check_for_updates "$@"
 migrate_old_db
 initialize_db
 
@@ -585,7 +704,16 @@ case "$1" in
   remove)
     remove_project "$2"
     ;;
+  update)
+    update_script
+    ;;
+  version)
+    echo "Supascale CLI v$VERSION"
+    ;;
   help|--help|-h)
+    show_help
+    ;;
+  "")
     show_help
     ;;
   *)
