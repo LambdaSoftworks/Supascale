@@ -4,12 +4,12 @@ A bash script for managing multiple self-hosted Supabase instances on a single m
 
 ## Features
 
-- 🚀 **Easy Project Creation**: Automated setup of new Supabase instances with unique configurations
-- 🔐 **Secure by Default**: Automatic generation of secure passwords and secrets
-- 🎯 **Port Management**: Intelligent port allocation for multiple services
-- 🔄 **Container Management**: Simple commands to start, stop, and manage Docker containers
-- 📝 **Configuration Management**: Centralized JSON-based configuration storage
-- 🛠️ **Docker Integration**: Seamless integration with Docker Compose
+-  **Easy Project Creation**: Automated setup of new Supabase instances with unique configurations
+-  **Secure by Default**: Automatic generation of secure passwords and secrets
+-  **Port Management**: Intelligent port allocation for multiple services
+-  **Container Management**: Simple commands to start, stop, and manage Docker containers
+-  **Configuration Management**: Centralized JSON-based configuration storage
+-  **Docker Integration**: Seamless integration with Docker Compose
 
 ## Prerequisites
 
@@ -32,17 +32,12 @@ git clone [repository-url]
 chmod +x supascale-cli.sh
 ```
 
-3. Optionally, add to your PATH for easier access:
-```bash
-ln -s $(pwd)/supascale-cli.sh /usr/local/bin/supascale-cli
-```
-
 ## Usage
 
 ### Available Commands
 
 ```bash
-supascale-cli [command] [options]
+./supascale-cli [command] [options]
 ```
 
 - `list`: Display all configured projects
@@ -56,22 +51,27 @@ supascale-cli [command] [options]
 
 1. **Create a new project**:
 ```bash
-supascale-cli add
+./supascale-cli add
 ```
 
 2. **List all projects**:
 ```bash
-supascale-cli list
+./supascale-cli list
 ```
 
 3. **Start a project**:
 ```bash
-supascale-cli start my-project
+./supascale-cli start my-project
 ```
 
 4. **Stop a project**:
 ```bash
-supascale-cli stop my-project
+./supascale-cli stop my-project
+```
+
+5. **Update the script**:
+```bash
+./supascale-cli update
 ```
 
 ## Project Structure
@@ -179,7 +179,7 @@ When a project is started, the script automatically:
 ## Cleanup
 
 1. **Removing a Project**
-   - Use `supascale-cli remove <project_id>` to remove project from configuration
+   - Use `./supascale-cli remove <project_id>` to remove project from configuration
    - Note: This doesn't delete project files or Docker containers
    - To clean up Docker containers: `docker container prune`
    - To completely remove a project, manually delete the project directory
