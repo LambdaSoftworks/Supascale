@@ -37,7 +37,7 @@ chmod +x supascale.sh
 ### Available Commands
 
 ```bash
-./supascale [command] [options]
+./supascale.sh [command] [options]
 ```
 
 - `list`: Display all configured projects
@@ -51,27 +51,27 @@ chmod +x supascale.sh
 
 1. **Create a new project**:
 ```bash
-./supascale add
+./supascale.sh add
 ```
 
 2. **List all projects**:
 ```bash
-./supascale list
+./supascale.sh list
 ```
 
 3. **Start a project**:
 ```bash
-./supascale start my-project
+./supascale.sh start my-project
 ```
 
 4. **Stop a project**:
 ```bash
-./supascale stop my-project
+./supascale.sh stop my-project
 ```
 
 5. **Update the script**:
 ```bash
-./supascale update
+./supascale.sh update
 ```
 
 ## Project Structure
@@ -179,7 +179,7 @@ When a project is started, the script automatically:
 ## Cleanup
 
 1. **Removing a Project**
-   - Use `./supascale remove <project_id>` to remove project from configuration
+   - Use `./supascale.sh remove <project_id>` to remove project from configuration
    - Note: This doesn't delete project files or Docker containers
    - To clean up Docker containers: `docker container prune`
    - To completely remove a project, manually delete the project directory
