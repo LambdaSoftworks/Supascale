@@ -51,7 +51,7 @@ chmod +x supascale.sh
 
 1. **Create a new project**:
 ```bash
-./supascale.sh add
+./supascale.sh add my-project
 ```
 
 2. **List all projects**:
