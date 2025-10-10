@@ -66,7 +66,7 @@
 # Supascale - Script Content Starts Below
 
 # Configuration
-VERSION="1.2.9"
+VERSION="1.3.0"
 GITHUB_RAW_URL="https://raw.githubusercontent.com/LambdaSoftworks/supascale/main/supascale.sh"
 UPDATE_CHECK_FILE="$HOME/.supascale_last_check"
 DB_FILE="$HOME/.supascale_database.json"
@@ -194,10 +194,19 @@ generate_jwt_token() {
 
 # Function to add a new project
 add_project() {
-  local project_id directory postgres_password jwt_secret anon_key_placeholder service_key_placeholder docker_env_file
+  local project_id="$1"
+  local directory postgres_password jwt_secret anon_key_placeholder service_key_placeholder docker_env_file
 
-  # Prompt for project ID
-  read -p "Enter project ID (lowercase alphanumeric, hyphens, underscores only): " project_id
+  if [ -z "$project_id" ]; then
+    echo "Error: Project ID required."
+    echo "Usage: ./supascale.sh add <project_id>"
+    echo ""
+    echo "Project ID must:"
+    echo "  - Start with a letter or number"
+    echo "  - Contain only lowercase letters, numbers, hyphens, and underscores"
+    echo "  - No dots, spaces, or special characters allowed"
+    return 1
+  fi
 
   # Validate project ID format for Docker Compose compatibility
   if [[ ! "$project_id" =~ ^[a-z0-9][a-z0-9_-]*$ ]]; then
@@ -665,7 +674,7 @@ show_help() {
   echo ""
   echo "Commands:"
   echo "  list                    List all configured projects"
-  echo "  add                     Add a new project"
+  echo "  add <project_id>        Add a new project"
   echo "  start <project_id>      Start a specific project"
   echo "  stop <project_id>       Stop a specific project"
   echo "  remove <project_id>     Remove a project from the database"
@@ -674,7 +683,7 @@ show_help() {
   echo "  help                    Show this help message"
   echo ""
   echo "Examples:"
-  echo "  ./supascale.sh add                    # Add a new project"
+  echo "  ./supascale.sh add my-project         # Add a new project"
   echo "  ./supascale.sh list                   # List all projects"
   echo "  ./supascale.sh start my-project       # Start the 'my-project' instance"
   echo "  ./supascale.sh stop my-project        # Stop the 'my-project' instance"
@@ -693,7 +702,7 @@ case "$1" in
     list_projects
     ;;
   add)
-    add_project
+    add_project "$2"
     ;;
   start)
     start_project "$2"
