@@ -169,6 +169,14 @@ generate_password() {
   tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 40
 }
 
+# Function to generate a random encryption key (alphanumeric, 32 chars for AES-256)
+# Fix related to Github issue 5 (https://github.com/LambdaSoftworks/Supascale/issues/5)
+generate_encryption_key() {
+  # Use /dev/urandom, filter for alphanumeric, take first 32 chars
+  # Required for AES-256-GCM encryption (256 bits = 32 bytes)
+  tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 32
+}
+
 # Function to generate JWT token using the JWT_SECRET
 generate_jwt_token() {
   local jwt_secret="$1"
@@ -266,7 +274,7 @@ add_project() {
   postgres_password=$(generate_password)
   jwt_secret=$(generate_password)
   local dashboard_password=$(generate_password)
-  local vault_enc_key=$(generate_password)
+  local vault_enc_key=$(generate_encryption_key)
 
   # Generate JWT keys automatically using the JWT secret
   echo "Generating JWT keys..."
