@@ -186,7 +186,7 @@ When a project is started, the script automatically:
 
 ## License
 
-MIT License - Copyright (c) 2025 Lambda Softworks
+GPL V3 License - Copyright (c) 2025 Lambda Softworks
 
 ## Acknowledgments
 
