@@ -186,9 +186,9 @@ When a project is started, the script automatically:
 
 ## License
 
-GPL V3 License - Copyright (c) 2025 Lambda Softworks
+GPL V3 License - Copyright (c) 2025 Frog Byte, LLC
 
 ## Acknowledgments
 
-- Original development by Lambda Softworks
+- Original development by Frog Byte, LLC
 - Built on top of [Supabase](https://supabase.com/) 
