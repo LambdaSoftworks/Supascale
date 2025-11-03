@@ -2,11 +2,11 @@
 
 ################################################################################
 # Supascale
-# Original Development: Lambda Softworks - https://www.lambdasoftworks.com
+# Original Development: Frog Byte, LLC - https://www.frogbyte.co
 #
-# MIT License
+# GPL V3 License
 #
-# Copyright (c) 2025 Lambda Softworks
+# Copyright (c) 2025 Frog Byte, LLC
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
