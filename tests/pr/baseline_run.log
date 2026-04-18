@@ -1,0 +1,69 @@
+1..68
+ok 1 running list creates DB file under isolated HOME
+ok 2 DB file contains valid JSON after first run
+ok 3 DB file initializes with empty projects object
+ok 4 DB file initializes last_port_assigned to BASE_PORT (54321)
+ok 5 no arguments shows help and exits 0
+ok 6 help command exits 0
+ok 7 help output contains Usage section
+ok 8 help output lists add command
+ok 9 help output lists backup command
+ok 10 --help flag exits 0
+ok 11 -h flag exits 0
+ok 12 version command exits 0
+ok 13 version command prints Supascale v<semver>
+ok 14 unknown command exits non-zero
+ok 15 unknown command prints 'Unknown command' message
+ok 16 unknown command still shows help output
+ok 17 add with no project_id currently exits 0 but prints an error
+ok 18 add with no project_id prints usage
+ok 19 start with no project_id currently exits 0 but prints an error
+ok 20 stop with no project_id currently exits 0 but prints an error
+ok 21 remove with no project_id currently exits 0 but prints an error
+ok 22 backup with no project_id currently exits 0 but prints an error
+ok 23 restore with no project_id currently exits 0 but prints an error
+ok 24 check-updates with no project_id currently exits 0 but prints an error
+ok 25 container-versions with no project_id currently exits 0 but prints an error
+ok 26 update-containers with no project_id and no --all currently exits 0 but prints an error
+ok 27 setup-domain with no project_id currently exits 0 but prints an error
+ok 28 remove-domain with no project_id currently exits 0 but prints an error
+ok 29 list-backups with no project_id currently exits 0 but prints an error
+ok 30 verify-backup with no path currently exits 0 but prints an error
+ok 31 backup-info with no path currently exits 0 but prints an error
+ok 32 setup-backup-schedule with no project_id currently exits 0 but prints an error
+ok 33 add with dots currently exits 0 but prints invalid project id
+ok 34 add with uppercase letters currently exits 0 but prints invalid project id
+ok 35 add starting with hyphen currently exits 0 but prints invalid project id
+ok 36 add with spaces currently exits 0 but prints invalid project id
+ok 37 add with special characters currently exits 0 but prints invalid project id
+ok 38 list exits 0 with empty DB
+ok 39 list prints no-projects message with empty DB
+ok 40 start on unknown project currently exits 0 but prints not found
+ok 41 stop on unknown project currently exits 0 but prints not found
+ok 42 backup on unknown project currently exits 0 but prints not found
+ok 43 restore on unknown project currently exits 0 but prints not found
+ok 44 check-updates on unknown project currently exits 0 but prints not found
+ok 45 container-versions on unknown project currently exits 0 but prints not found
+ok 46 setup-domain on unknown project currently exits 0 but prints not found
+ok 47 remove-domain on unknown project currently exits 0 but prints not found
+ok 48 verify-backup on non-existent file currently exits 0 but prints not found
+ok 49 backup-info on non-existent file currently exits 0 but prints not found
+ok 50 restore without --from currently exits 0 but prints required flag error
+ok 51 add: .env contains non-empty POSTGRES_PASSWORD
+ok 52 add: .env contains non-empty JWT_SECRET
+ok 53 add: .env contains non-empty ANON_KEY
+ok 54 add: .env contains non-empty SERVICE_ROLE_KEY
+ok 55 add: .env contains non-empty DASHBOARD_PASSWORD
+ok 56 add: .env contains non-empty VAULT_ENC_KEY
+ok 57 add: .env sets DASHBOARD_USERNAME to 'supabase'
+ok 58 add: DB record contains api port 54321 for first project
+ok 59 add: DB record contains db port 54322 for first project
+ok 60 add: DB record contains studio port 54323 for first project
+ok 61 add: last_port_assigned advances by PORT_INCREMENT (1000) after add
+ok 62 add: docker-compose.yml contains api port binding 54321 on :8000
+ok 63 add: docker-compose.yml contains db port binding 54322 on :5432
+ok 64 add: docker-compose.yml contains studio port binding 54323 on :3000
+ok 65 add: docker-compose.yml contains analytics port binding 54327 on :4000
+ok 66 add: docker-compose.yml contains inbucket port binding 54324 on :9000
+ok 67 add: docker-compose.yml contains kong https port binding 54764 on :8443
+ok 68 add: DB record contains all required port keys
