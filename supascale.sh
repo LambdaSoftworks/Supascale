@@ -566,6 +566,7 @@ update_project_configurations() {
   local db_port=$(echo "$project_info" | jq -r '.ports.db')
   local studio_port=$(echo "$project_info" | jq -r '.ports.studio')
   local inbucket_port=$(echo "$project_info" | jq -r '.ports.inbucket')
+  local analytics_port=$(echo "$project_info" | jq -r '.ports.analytics // ""') # Extract Analytics port, default to empty if null
   local kong_https_port=$(echo "$project_info" | jq -r '.ports.kong_https // ""') # Extract Kong HTTPS port, default to empty if null
 
   cp "$compose_file" "$compose_file.bak" # Backup original first
@@ -588,9 +589,14 @@ update_project_configurations() {
   echo "Setting Inbucket port to $inbucket_port (updates host side of :9000 mapping)"
   sed -i.tmp -E "s/^([[:space:]]*-*[[:space:]]*[\"\']?)[0-9]+(:9000[\"\']?.*)$/\1$inbucket_port\2/" "$compose_file"
 
-  # Update analytics port
-  echo "Setting Analytics port to $analytics_port (updates host side of :4000 mapping)"
-  sed -i.tmp -E "s/^([[:space:]]*-*[[:space:]]*[\"\']?)[0-9]+(:4000[\"\']?.*)$/\1$analytics_port\2/" "$compose_file"
+  # Update analytics port (only if the port was actually extracted, to avoid
+  # blanking out the host side of the :4000 mapping)
+  if [ -n "$analytics_port" ]; then
+    echo "Setting Analytics port to $analytics_port (updates host side of :4000 mapping)"
+    sed -i.tmp -E "s/^([[:space:]]*-*[[:space:]]*[\"\']?)[0-9]+(:4000[\"\']?.*)$/\1$analytics_port\2/" "$compose_file"
+  else
+    echo "Warning: Analytics port not found in project data for $project_id. Skipping update for 4000 mapping."
+  fi
 
   # Only update Kong HTTPS if the port was actually extracted
   if [ -n "$kong_https_port" ]; then
@@ -705,7 +711,10 @@ stop_project() {
   cd "$directory/supabase/docker" || { echo "Failed to change directory, maybe already stopped or directory removed?"; return 1; }
 
   echo "Running docker compose down..."
-  sudo docker compose -p "$project_id" down -v --remove-orphans
+  # Do NOT pass -v here: a plain stop must be non-destructive. Removing volumes
+  # would wipe named Docker volumes (e.g. db-config) on every stop. Use the
+  # explicit 'remove' command if you want to tear everything down.
+  sudo docker compose -p "$project_id" down --remove-orphans
 
   echo "Supabase stopped for project '$project_id'"
 }
@@ -1074,10 +1083,13 @@ update_docker_compose_image() {
   # Create backup
   cp "$compose_file" "${compose_file}.update_backup"
 
-  # Use awk to find the service block and update the image line
+  # Use awk to find the service block and update the image line.
+  # Match exactly two leading spaces literally (not the {2} interval) so this
+  # works on awks that lack interval-expression support (e.g. busybox awk),
+  # consistent with the "^  " match used just below.
   awk -v svc="$service" -v ver="$new_version" '
   BEGIN { in_service = 0; indent = "" }
-  /^[[:space:]]{2}[a-z_-]+:[[:space:]]*$/ {
+  /^  [a-z_-]+:[[:space:]]*$/ {
     if ($0 ~ "^  " svc ":") {
       in_service = 1
     } else {
@@ -1100,13 +1112,29 @@ perform_health_check() {
   local docker_dir="$directory/supabase/docker"
   local api_port=$(echo "$project_info" | jq -r '.ports.api')
 
+  # Only genuine, unambiguous container failures are treated as fatal (and thus
+  # trigger an auto-rollback). The API probe and log scan are advisory only:
+  # right after an update the stack may still be warming up, and Supabase
+  # containers routinely emit log lines containing the word "error" during
+  # normal operation - neither should by itself destroy a good update.
   local errors=""
 
   cd "$docker_dir"
 
-  # Check 1: Count running vs total containers
-  local running_count=$(sudo docker compose -p "$project_id" ps --status running -q 2>/dev/null | wc -l)
-  local total_count=$(sudo docker compose -p "$project_id" ps -q 2>/dev/null | wc -l)
+  # Check 1 (fatal): all containers running. Retry to tolerate slow startup so a
+  # healthy-but-still-initializing stack is not misreported as a failure.
+  local running_count=0
+  local total_count=0
+  local attempt=0
+  while [ "$attempt" -lt 6 ]; do
+    running_count=$(sudo docker compose -p "$project_id" ps --status running -q 2>/dev/null | wc -l)
+    total_count=$(sudo docker compose -p "$project_id" ps -q 2>/dev/null | wc -l)
+    if [ "$running_count" -ge "$total_count" ]; then
+      break
+    fi
+    attempt=$((attempt + 1))
+    sleep 5
+  done
 
   if [ "$running_count" -lt "$total_count" ]; then
     errors+="  - Only $running_count of $total_count containers are running\n"
@@ -1117,23 +1145,26 @@ perform_health_check() {
     fi
   fi
 
-  # Check 2: Look for containers in restart loop
+  # Check 2 (fatal): containers stuck in a restart loop
   local restarting=$(sudo docker compose -p "$project_id" ps 2>/dev/null | grep -c "Restarting" || true)
   if [ "$restarting" -gt 0 ]; then
     errors+="  - $restarting container(s) are in a restart loop\n"
   fi
 
-  # Check 3: API endpoint responding (wait a bit for services to initialize)
-  sleep 5
+  # Check 3 (advisory): API endpoint responding. Not fatal - a reverse proxy or
+  # custom config can legitimately change this, and services may still be warming
+  # up. Surfaced to the user on stderr instead of forcing a rollback.
   local api_status=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:$api_port/rest/v1/" 2>/dev/null || echo "000")
   if [ "$api_status" != "200" ] && [ "$api_status" != "401" ]; then
-    errors+="  - API not responding (HTTP status: $api_status)\n"
+    echo "WARNING: API health probe returned HTTP $api_status on localhost:$api_port (advisory; services may still be starting)." >&2
   fi
 
-  # Check 4: Get recent error logs from containers
+  # Check 4 (advisory): recent error/fatal/panic log lines. Not fatal - these are
+  # frequently benign in a normally-running Supabase stack.
   local error_logs=$(sudo docker compose -p "$project_id" logs --tail=20 2>&1 | grep -i "error\|fatal\|panic" | head -10 || true)
   if [ -n "$error_logs" ]; then
-    errors+="  - Recent error logs detected:\n$error_logs\n"
+    echo "NOTE: recent log lines mentioning error/fatal/panic (advisory, often benign):" >&2
+    echo "$error_logs" >&2
   fi
 
   if [ -n "$errors" ]; then
@@ -1270,7 +1301,10 @@ update_containers() {
   echo "  Waiting for containers to initialize..."
   sleep 10
 
-  local health_errors=$(perform_health_check "$project_id")
+  # Declare then assign on separate lines: `local x=$(...)` would make $? reflect
+  # the `local` builtin (always 0), silently disabling the auto-rollback below.
+  local health_errors
+  health_errors=$(perform_health_check "$project_id")
   local health_status=$?
 
   if [ $health_status -ne 0 ]; then
@@ -1841,8 +1875,11 @@ backup_database() {
   local db_output_dir="$output_dir/database"
   mkdir -p "$db_output_dir"
 
-  # Get database password
-  local db_password=$(get_db_credentials "$project_dir")
+  # Get database password. Declare then assign separately so $? reflects
+  # get_db_credentials (a combined `local x=$(...)` would report the `local`
+  # builtin's status, always 0, and never catch a missing .env).
+  local db_password
+  db_password=$(get_db_credentials "$project_dir")
   if [ $? -ne 0 ]; then
     return 1
   fi
@@ -2306,9 +2343,13 @@ restore_database() {
     log_progress "  Copying backup to container..."
     sudo docker cp "$db_backup_dir/database.dump" "$container_name:/tmp/restore.dump" 2>/dev/null
 
-    # Drop and recreate the database
+    # Drop and recreate the database. Connect to template1 for BOTH statements:
+    # PostgreSQL refuses to drop the database you are currently connected to, so
+    # the previous `-U postgres -c "DROP DATABASE postgres"` (which connects to
+    # the postgres DB) always failed silently, leaving stale data in place and
+    # then CREATE erroring with "already exists".
     log_progress "  Dropping existing database..."
-    sudo docker exec "$container_name" psql -U postgres -c "DROP DATABASE IF EXISTS postgres WITH (FORCE);" 2>/dev/null || true
+    sudo docker exec "$container_name" psql -U postgres -d template1 -c "DROP DATABASE IF EXISTS postgres WITH (FORCE);" 2>/dev/null || true
     sudo docker exec "$container_name" psql -U postgres -d template1 -c "CREATE DATABASE postgres;" 2>/dev/null
 
     # Restore the database
