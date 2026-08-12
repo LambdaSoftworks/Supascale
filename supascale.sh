@@ -116,7 +116,7 @@
 # Supascale - Script Content Starts Below
 
 # Configuration
-VERSION="1.5.0"
+VERSION="1.6.0"
 GITHUB_RAW_URL="https://raw.githubusercontent.com/LambdaSoftworks/supascale/main/supascale.sh"
 UPDATE_CHECK_FILE="$HOME/.supascale_last_check"
 DB_FILE="$HOME/.supascale_database.json"
