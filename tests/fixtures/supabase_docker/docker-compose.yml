@@ -1,0 +1,43 @@
+# Trimmed from upstream Supabase docker/docker-compose.yml.
+# Kept service names, container_name fields, and realistic port bindings that
+# supascale.sh rewrites during add/update_project_configurations().
+
+services:
+  studio:
+    container_name: supabase-studio
+    image: supabase/studio:latest
+    ports:
+      - 3000:3000
+
+  kong:
+    container_name: supabase-kong
+    image: kong/kong:3.9.1
+    ports:
+      - 8000:8000
+      - 8443:8443
+
+  analytics:
+    container_name: supabase-analytics
+    image: supabase/logflare:latest
+    ports:
+      - 4000:4000
+
+  db:
+    container_name: supabase-db
+    image: supabase/postgres:latest
+    ports:
+      - 5432:5432
+
+  inbucket:
+    container_name: supabase-inbucket
+    image: inbucket/inbucket:latest
+    ports:
+      - 9000:9000
+      - 2500:2500
+      - 1100:1100
+
+  supavisor:
+    container_name: supabase-pooler
+    image: supabase/supavisor:latest
+    ports:
+      - 6543:6543

@@ -478,6 +478,7 @@ add_project() {
   sed -i.tmp "s|^KONG_HTTP_PORT=.*|KONG_HTTP_PORT=$api_port|" "$docker_env_file"
   sed -i.tmp "s|^KONG_HTTPS_PORT=.*|KONG_HTTPS_PORT=$kong_https_port|" "$docker_env_file"
   sed -i.tmp "s|^POSTGRES_PORT=.*|POSTGRES_PORT=$db_port|" "$docker_env_file"
+  sed -i.tmp "s|^POOLER_PROXY_PORT_TRANSACTION=.*|POOLER_PROXY_PORT_TRANSACTION=$pooler_port|" "$docker_env_file"
   rm -f "$docker_env_file.tmp" # Clean up sed backup
 
   echo ".env file updated with generated passwords, JWT keys, Kong ports, and Postgres port."
